@@ -561,8 +561,11 @@ static int acpuclk_8x60_set_rate(int cpu, unsigned long rate,
 			goto out;
 	}
 
+	/* CPU rate change frequently, not proper to be printed by default */
+	/*
 	pr_debug("Switching from ACPU%d rate %u KHz -> %u KHz\n",
 		cpu, strt_s->acpuclk_khz, tgt_s->acpuclk_khz);
+	*/
 
 	/* Switch CPU speed. */
 	switch_sc_speed(cpu, tgt_s);
@@ -588,7 +591,8 @@ static int acpuclk_8x60_set_rate(int cpu, unsigned long rate,
 	if (tgt_s->acpuclk_khz < strt_s->acpuclk_khz)
 		decrease_vdd(cpu, tgt_s->vdd_sc, vdd_mem, vdd_dig, reason);
 
-	pr_debug("ACPU%d speed change complete\n", cpu);
+	/* CPU rate change frequently, not proper to be printed by default */
+	/* pr_debug("ACPU%d speed change complete\n", cpu); */
 
 	/* Re-enable AVS */
 	if (reason == SETRATE_CPUFREQ)
@@ -877,7 +881,7 @@ static unsigned int __init select_freq_plan(void)
 	uint32_t max_khz;
 	struct clkctl_acpu_speed *f;
 
-	max_khz = 1944000;
+	max_khz = 1890000;
 	acpu_freq_tbl = acpu_freq_tbl_oc;
 
 	/* Truncate the table based to max_khz. */
