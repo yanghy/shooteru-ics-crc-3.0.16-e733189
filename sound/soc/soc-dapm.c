@@ -3076,16 +3076,14 @@ void snd_soc_dapm_shutdown(struct snd_soc_card *card)
 	struct snd_soc_codec *codec;
 	struct snd_soc_platform *platform;
 
-	list_for_each_entry(codec, &card->codec_dev_list, list) {
-		soc_dapm_shutdown_codec(&codec->dapm);
-		if (codec->dapm.bias_level == SND_SOC_BIAS_STANDBY)
-			snd_soc_dapm_set_bias_level(&codec->dapm,
-						    SND_SOC_BIAS_OFF);
-	}
-
+ 	list_for_each_entry(codec, &card->codec_dev_list, list) {
+ 		soc_dapm_shutdown_codec(&codec->dapm);
+ 		snd_soc_dapm_set_bias_level(&codec->dapm, SND_SOC_BIAS_OFF);
+ 	}
 	list_for_each_entry(platform, &card->platform_dev_list, list) {
 		soc_dapm_shutdown_codec(&platform->dapm);
 		snd_soc_dapm_set_bias_level(&platform->dapm, SND_SOC_BIAS_OFF);
+	
 	}
 }
 
@@ -3093,3 +3091,4 @@ void snd_soc_dapm_shutdown(struct snd_soc_card *card)
 MODULE_AUTHOR("Liam Girdwood, lrg@slimlogic.co.uk");
 MODULE_DESCRIPTION("Dynamic Audio Power Management core for ALSA SoC");
 MODULE_LICENSE("GPL v2");
+

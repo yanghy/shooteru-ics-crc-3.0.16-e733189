@@ -1238,7 +1238,6 @@ static long __tun_chr_ioctl(struct file *file, unsigned int cmd,
 	int sndbuf;
 	int vnet_hdr_sz;
 	int ret;
-
 #ifdef CONFIG_ANDROID_PARANOID_NETWORK
 	if (cmd != TUNGETIFF && !capable(CAP_NET_ADMIN)) {
 		return -EPERM;
@@ -1689,3 +1688,4 @@ MODULE_AUTHOR(DRV_COPYRIGHT);
 MODULE_LICENSE("GPL");
 MODULE_ALIAS_MISCDEV(TUN_MINOR);
 MODULE_ALIAS("devname:net/tun");
+

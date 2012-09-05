@@ -318,3 +318,4 @@ int pm_suspend(suspend_state_t state)
 	return -EINVAL;
 }
 EXPORT_SYMBOL(pm_suspend);
+

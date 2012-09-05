@@ -479,10 +479,9 @@ do_cache_op(unsigned long start, unsigned long end, int flags)
 
 		up_read(&mm->mmap_sem);
 		flush_cache_user_range(start, end);
-
-#ifdef CONFIG_ARCH_MSM7X27
-		mb();
-#endif
+		#ifdef CONFIG_ARCH_MSM7X27
+		  mb();
+		#endif
 		return;
 	}
 	up_read(&mm->mmap_sem);
@@ -814,3 +813,4 @@ void __init early_trap_init(void)
 	flush_icache_range(vectors, vectors + PAGE_SIZE);
 	modify_domain(DOMAIN_USER, DOMAIN_CLIENT);
 }
+

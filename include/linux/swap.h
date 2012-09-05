@@ -501,3 +501,4 @@ mem_cgroup_count_swap_user(swp_entry_t ent, struct page **pagep)
 #endif /* CONFIG_SWAP */
 #endif /* __KERNEL__*/
 #endif /* _LINUX_SWAP_H */
+

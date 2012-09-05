@@ -607,7 +607,7 @@ out:
 	return ret;
 }
 
-static unsigned long compact_zone_order(struct zone *zone,
+unsigned long compact_zone_order(struct zone *zone,
 				 int order, gfp_t gfp_mask,
 				 bool sync)
 {
@@ -766,3 +766,4 @@ void compaction_unregister_node(struct node *node)
 	return sysdev_remove_file(&node->sysdev, &attr_compact);
 }
 #endif /* CONFIG_SYSFS && CONFIG_NUMA */
+

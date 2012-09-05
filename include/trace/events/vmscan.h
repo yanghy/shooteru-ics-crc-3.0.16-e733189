@@ -475,3 +475,4 @@ TRACE_EVENT_CONDITION(update_swap_token_priority,
 
 /* This part must be outside protection */
 #include <trace/define_trace.h>
+
