@@ -923,6 +923,7 @@ static ssize_t mem_write(struct file * file, const char __user *buf,
 		goto out_mm;
 
 	copied = 0;
+
 	while (count > 0) {
 		int this_len, retval;
 
@@ -931,12 +932,14 @@ static ssize_t mem_write(struct file * file, const char __user *buf,
 			copied = -EFAULT;
 			break;
 		}
+
 		retval = access_remote_vm(mm, dst, page, this_len, 1);
 		if (!retval) {
 			if (!copied)
 				copied = -EIO;
 			break;
 		}
+
 		copied += retval;
 		buf += retval;
 		dst += retval;
@@ -953,6 +956,7 @@ out_task:
 out_no_task:
 	return copied;
 }
+
 #endif
 
 loff_t mem_lseek(struct file *file, loff_t offset, int orig)
@@ -3508,4 +3512,3 @@ static const struct file_operations proc_task_operations = {
 	.readdir	= proc_task_readdir,
 	.llseek		= default_llseek,
 };
-

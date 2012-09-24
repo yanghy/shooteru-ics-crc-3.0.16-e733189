@@ -24,37 +24,12 @@
 #include <linux/kthread.h>
 #include <linux/mutex.h>
 #include <linux/freezer.h>
-#include <linux/usb/otg.h>
 #include <linux/random.h>
 
 #include <asm/uaccess.h>
 #include <asm/byteorder.h>
 
 #include "usb.h"
-#if defined(CONFIG_USB_PEHCI_HCD) || defined(CONFIG_USB_PEHCI_HCD_MODULE)
-#include <linux/usb/hcd.h>
-#include <linux/usb/ch11.h>
-
-int portno;
-int No_Data_Phase;
-EXPORT_SYMBOL(No_Data_Phase);
-int No_Status_Phase;
-EXPORT_SYMBOL(No_Status_Phase);
-unsigned char hub_tier;
-
-#define PDC_HOST_NOTIFY		0x8001	/*completion from core */
-#define UNSUPPORTED_DEVICE	0x8099
-#define UNWANTED_SUSPEND	0x8098
-#define PDC_POWERMANAGEMENT	0x8097
-
-int Unwanted_SecondReset;
-EXPORT_SYMBOL(Unwanted_SecondReset);
-int HostComplianceTest;
-EXPORT_SYMBOL(HostComplianceTest);
-int HostTest;
-EXPORT_SYMBOL(HostTest);
-#endif
-
 
 /* if we are in debug mode, always announce new devices */
 #ifdef DEBUG
@@ -906,6 +881,7 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 	 * will see them later and handle them normally.
 	 */
 	if (need_debounce_delay) {
+
 		delay = HUB_DEBOUNCE_STABLE;
 
 		/* Don't do a long sleep inside a workqueue routine */
@@ -1670,13 +1646,12 @@ void usb_disconnect(struct usb_device **pdev)
 {
 	struct usb_device	*udev = *pdev;
 	int			i;
-	struct usb_hcd		*hcd;
 
 	if (!udev) {
 		pr_debug ("%s nodev\n", __func__);
 		return;
 	}
-	hcd = bus_to_hcd(udev->bus);
+
 	/* mark the device as inactive, so any further urb submissions for
 	 * this device (and any of its children) will fail immediately.
 	 * this quiesces everything except pending urbs.
@@ -1684,6 +1659,7 @@ void usb_disconnect(struct usb_device **pdev)
 	usb_set_device_state(udev, USB_STATE_NOTATTACHED);
 	dev_info(&udev->dev, "USB disconnect, device number %d\n",
 			udev->devnum);
+
 
 	usb_lock_device(udev);
 
@@ -1789,6 +1765,7 @@ static int usb_enumerate_device_otg(struct usb_device *udev)
 					(port1 == bus->otg_port)
 						? "" : "non-");
 
+
 				/* enable HNP before suspend, it's simpler */
 				if (port1 == bus->otg_port)
 					bus->b_hnp_enable = 1;
@@ -1811,8 +1788,8 @@ static int usb_enumerate_device_otg(struct usb_device *udev)
 			}
 		}
 	}
-
 	if (!is_targeted(udev)) {
+
 
 		/* Maybe it can talk to us, though we can't talk to it.
 		 * (Includes HNP test device.)
@@ -2900,6 +2877,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	default:
 		goto fail;
 	}
+
  
 	type = "";
 	switch (udev->speed) {
@@ -2935,6 +2913,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 		udev->tt = &hub->tt;
 		udev->ttport = port1;
 	}
+
  
 	/* Why interleave GET_DESCRIPTOR and SET_ADDRESS this way?
 	 * Because device hardware and firmware is sometimes buggy in
@@ -3079,6 +3058,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 		udev->ep0.desc.wMaxPacketSize = cpu_to_le16(i);
 		usb_ep0_reinit(udev);
 	}
+
   
 	retval = usb_get_device_descriptor(udev, USB_DT_DEVICE_SIZE);
 	if (retval < (signed)sizeof(udev->descriptor)) {
@@ -3339,6 +3319,7 @@ static void hub_port_connect_change(struct usb_hub *hub, int port1,
 				goto loop_disable;
 			}
 		}
+
  
 		/* check for devices running slower than they could */
 		if (le16_to_cpu(udev->descriptor.bcdUSB) >= 0x0200
@@ -3397,6 +3378,7 @@ loop:
 			!(hcd->driver->port_handed_over)(hcd, port1))
 		dev_err(hub_dev, "unable to enumerate USB device on port %d\n",
 				port1);
+
  
 done:
 	hub_port_disable(hub, port1, 1);
@@ -3417,7 +3399,6 @@ static void hub_events(void)
 	u16 portchange;
 	int i, ret;
 	int connect_change;
-
 	/*
 	 *  We restart the list every time to avoid a deadlock with
 	 * deleting hubs downstream from this one. This should be
@@ -3561,6 +3542,7 @@ static void hub_events(void)
 					"resume on port %d, status %d\n",
 					i, ret);
 			}
+
 			
 			if (portchange & USB_PORT_STAT_C_OVERCURRENT) {
 				u16 status = 0;
@@ -3883,6 +3865,7 @@ static int usb_reset_and_verify_device(struct usb_device *udev)
 
 	if (ret < 0)
 		goto re_enumerate;
+
  
 	/* Device might have changed firmware (DFU or similar) */
 	if (descriptors_changed(udev, &descriptor)) {
@@ -3956,6 +3939,7 @@ static int usb_reset_and_verify_device(struct usb_device *udev)
 
 done:
 	return 0;
+
  
 re_enumerate:
 	hub_port_logical_disconnect(parent_hub, port1);
@@ -4085,4 +4069,3 @@ void usb_queue_reset_device(struct usb_interface *iface)
 	schedule_work(&iface->reset_ws);
 }
 EXPORT_SYMBOL_GPL(usb_queue_reset_device);
-

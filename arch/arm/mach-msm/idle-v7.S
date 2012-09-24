@@ -53,7 +53,6 @@ ENTRY(msm_pm_collapse)
 #else
 	ldr	r1, =0				/* single cpu, set current cpu to 0. */
 #endif
-
 	ldr	r2, =cur_cpu
 	str	r1, [r2]			/* store current cpu number for later use. */
 #if defined(CONFIG_THUMB2_KERNEL)
@@ -61,6 +60,7 @@ ENTRY(msm_pm_collapse)
 #else
 	stmia   r0!, {r4-r14}
 #endif
+
 	mrc     p15, 0, r1, c1, c0, 0 /* MMU control */
 	mrc     p15, 0, r2, c2, c0, 0 /* TTBR0 */
 	mrc     p15, 0, r3, c3, c0, 0 /* dacr */

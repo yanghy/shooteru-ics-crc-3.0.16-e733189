@@ -912,8 +912,11 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 
 	if (desc->irq_data.chip == &no_irq_chip)
 		return -ENOSYS;
+	
 	if (!try_module_get(desc->owner))
 		return -ENODEV;
+
+	
 	/*
 	 * Check whether the interrupt nests into another interrupt
 	 * thread.
@@ -1669,4 +1672,3 @@ int request_percpu_irq(unsigned int irq, irq_handler_t handler,
 
 	return retval;
 }
-
