@@ -38,6 +38,7 @@
 
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
 #include <linux/leds-pm8058.h>
+#include <linux/ctype.h>
 #endif
 
 #define ATMEL_EN_SYSFS
@@ -146,11 +147,52 @@ int s2w_temp = 1;
 int s2w_switch = 2;
 int s2w_temp = 2;
 #endif
+
 bool scr_suspended = false, exec_count = true, s2w_switch_changed = false;
 bool scr_on_touch = false, led_exec_count = false, barrier[2] = {false, false};
 static struct input_dev * sweep2wake_pwrdev;
 static struct led_classdev * sweep2wake_leddev;
+int barrier1 = 0, barrier2 = 0, barrier3 = 0, barrier4 = 0;
 static DEFINE_MUTEX(pwrlock);
+
+typedef struct {
+	int	x;
+   	char	name[10];
+} button;
+
+static button buttons[] = {{140, "HOME"},
+			{400, "MENU"},
+			{645, "BACK"},
+			{915, "SEARCH"}};
+				
+int s2w_startbutton = 0;
+int s2w_endbutton = 0;
+
+int sweep2wake_buttonset(const char * button_name) {
+	int i = 0;	
+	int future_button = -1;	
+	char temp_button_name[2] = "";
+	char temp_button_name_from_array[2] = "";
+
+	strncpy(temp_button_name,button_name,1);
+	temp_button_name[1] = '\0';
+
+	for (i = 0; i < sizeof(buttons)/sizeof(button); i++)
+	{
+		strncpy(temp_button_name_from_array,buttons[i].name,1);
+		temp_button_name_from_array[1] = '\0';
+
+		if (strcmp(temp_button_name,temp_button_name_from_array) == 0)
+			future_button = buttons[i].x;
+		
+		temp_button_name_from_array[0] = tolower(temp_button_name_from_array[0]);
+
+		if (strcmp(temp_button_name,temp_button_name_from_array) == 0)
+			future_button = buttons[i].x;
+	}
+
+	return future_button;
+}
 
 extern void sweep2wake_setdev(struct input_dev * input_device) {
 	sweep2wake_pwrdev = input_device;
@@ -728,6 +770,124 @@ static ssize_t atmel_sweep2wake_dump(struct device *dev,
 
 static DEVICE_ATTR(sweep2wake, (S_IWUSR|S_IRUGO),
 	atmel_sweep2wake_show, atmel_sweep2wake_dump);
+
+static ssize_t atmel_sweep2wake_availablebuttons_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int i = 0;
+	size_t count = 0;
+
+	for (i = 0; i < sizeof(buttons)/sizeof(button); i++)
+	{
+		count += sprintf(&buf[count], "%s ",buttons[i].name);
+	}
+
+	count += sprintf(&buf[count], "\n");
+
+	return count;
+}
+static DEVICE_ATTR(sweep2wake_availablebuttons, S_IRUGO,
+	atmel_sweep2wake_availablebuttons_show, NULL);
+
+static ssize_t atmel_sweep2wake_startbutton_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int i = 0;
+	size_t count = 0;
+	bool found = false;
+
+	for (i = 0; i < sizeof(buttons)/sizeof(button); i++)
+	{
+		if (s2w_startbutton == buttons[i].x) {				
+			count += sprintf(buf, "%s\n",buttons[i].name);
+			found = true;
+		}
+	}
+	
+	if (!found) 
+		count += sprintf(buf, "%s\n","UNKNOWN");
+
+	return count;
+}
+
+static ssize_t atmel_sweep2wake_startbutton_dump(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int s2w_tempbutton = 0;
+
+	s2w_tempbutton = sweep2wake_buttonset(buf);
+	if (s2w_tempbutton == -1)
+		return -EINVAL;;
+
+	if ( s2w_tempbutton == s2w_endbutton )
+		return count;
+
+	if ( s2w_tempbutton > s2w_endbutton ) {
+		s2w_startbutton = s2w_endbutton;	
+		s2w_endbutton = s2w_tempbutton;
+	} else 
+		s2w_startbutton = s2w_tempbutton;
+
+	barrier1 = s2w_startbutton - 100; //0;
+	barrier2 = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
+	barrier3 = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
+	barrier4 = s2w_endbutton + 100; //1000;
+
+	return count;
+}
+
+static DEVICE_ATTR(sweep2wake_startbutton, (S_IWUSR|S_IRUGO),
+	atmel_sweep2wake_startbutton_show, atmel_sweep2wake_startbutton_dump);
+
+static ssize_t atmel_sweep2wake_endbutton_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int i = 0;
+	size_t count = 0;
+	bool found = false;
+
+	for (i = 0; i < sizeof(buttons)/sizeof(button); i++)
+	{
+		if (s2w_endbutton == buttons[i].x) {				
+			count += sprintf(buf, "%s\n",buttons[i].name);
+			found = true;
+		}
+	}
+	
+	if (!found) 
+		count += sprintf(buf, "%s\n","UNKNOWN");
+
+	return count;
+}
+
+static ssize_t atmel_sweep2wake_endbutton_dump(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int s2w_tempbutton = 0;
+
+	s2w_tempbutton = sweep2wake_buttonset(buf);
+	if (s2w_tempbutton == -1)
+		return -EINVAL;;
+
+	if ( s2w_tempbutton == s2w_startbutton )
+		return count;
+
+	if ( s2w_tempbutton < s2w_startbutton ) {
+		s2w_endbutton = s2w_startbutton;	
+		s2w_startbutton = s2w_tempbutton;
+	} else 
+		s2w_endbutton = s2w_tempbutton;
+
+	barrier1 = s2w_startbutton - 100; //0;
+	barrier2 = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
+	barrier3 = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
+	barrier4 = s2w_endbutton + 100; //1000;
+
+	return count;
+}
+
+static DEVICE_ATTR(sweep2wake_endbutton, (S_IWUSR|S_IRUGO),
+	atmel_sweep2wake_endbutton_show, atmel_sweep2wake_endbutton_dump);
 #endif
 
 
@@ -744,6 +904,21 @@ static int atmel_touch_sysfs_init(void)
 	}
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake.attr);
+	if (ret) {
+		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
+		return ret;
+	}
+	ret = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_startbutton.attr);
+	if (ret) {
+		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
+		return ret;
+	}
+	ret = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_endbutton.attr);
+	if (ret) {
+		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
+		return ret;
+	}
+	ret = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_availablebuttons.attr);
 	if (ret) {
 		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
 		return ret;
@@ -807,6 +982,9 @@ static void atmel_touch_sysfs_deinit(void)
 {
 #ifdef CONFIG_TOUCHSCREEN_CYPRESS_SWEEP2WAKE
 	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake.attr);
+	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_startbutton.attr);
+	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_endbutton.attr);
+	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_availablebuttons.attr);
 #endif
 	sysfs_remove_file(android_touch_kobj, &dev_attr_info.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_htc_event.attr);
@@ -1305,9 +1483,6 @@ static void htc_input_report(struct input_dev *idev,
 static void multi_input_report(struct atmel_ts_data *ts)
 {
 	uint8_t loop_i, finger_report = 0;
-#ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
-  int prevx = 0, nextx = 0;
-#endif
 
 	for (loop_i = 0; loop_i < ts->finger_support; loop_i++) {
 		if (ts->finger_pressed & BIT(loop_i)) {
@@ -1326,27 +1501,22 @@ static void multi_input_report(struct atmel_ts_data *ts)
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
 			//left -> right
 			if ((s2w_switch > 0) && (scr_suspended == true) && (ts->finger_count == 1)) {
-				prevx = 333;
-				nextx = 667;
 				if ((barrier[0] == true) ||
-				   ((ts->finger_data[loop_i].x > prevx) &&
-				    (ts->finger_data[loop_i].x < nextx) &&
+				   ((ts->finger_data[loop_i].x > barrier1) &&
+				    (ts->finger_data[loop_i].x < barrier2) &&
 				    (ts->finger_data[loop_i].y > 950))) {
 					if ((led_exec_count == true) && (scr_on_touch == false) && (s2w_switch == 2)) {
 						pm8058_drvx_led_brightness_set(sweep2wake_leddev, 255);
 						printk(KERN_INFO "[sweep2wake]: activated button backlight.\n");
 						led_exec_count = false;
 					}
-					prevx = 667;
-					nextx = 950;
 					barrier[0] = true;
 					if ((barrier[1] == true) ||
-					   ((ts->finger_data[loop_i].x > prevx) &&
-					    (ts->finger_data[loop_i].x < nextx) &&
+					   ((ts->finger_data[loop_i].x > barrier2) &&
+					    (ts->finger_data[loop_i].x < barrier3) &&
 					    (ts->finger_data[loop_i].y > 950))) {
-						prevx = 667;
 						barrier[1] = true;
-						if ((ts->finger_data[loop_i].x > prevx) &&
+						if ((ts->finger_data[loop_i].x > barrier3) &&
 						    (ts->finger_data[loop_i].y > 950)) {
 							if (exec_count) {
 								printk(KERN_INFO "[sweep2wake]: POWER ON.\n");
@@ -1360,22 +1530,17 @@ static void multi_input_report(struct atmel_ts_data *ts)
 			//right -> left
 			} else if ((s2w_switch > 0) && (scr_suspended == false) && (ts->finger_count == 1)) {
 				scr_on_touch=true;
-				prevx = 1000;
-				nextx = 667;
 				if ((barrier[0] == true) ||
-				   ((ts->finger_data[loop_i].x < prevx) &&
-			    	    (ts->finger_data[loop_i].x > nextx) &&
+				   ((ts->finger_data[loop_i].x < barrier4) &&
+			    	    (ts->finger_data[loop_i].x > barrier3) &&
 				    (ts->finger_data[loop_i].y > 950))) {
-					prevx = 667;
-					nextx = 333;
 					barrier[0] = true;
 					if ((barrier[1] == true) ||
-					   ((ts->finger_data[loop_i].x < prevx) &&
-					    (ts->finger_data[loop_i].x > nextx) &&
+					   ((ts->finger_data[loop_i].x < barrier3) &&
+					    (ts->finger_data[loop_i].x > barrier2) &&
 					    (ts->finger_data[loop_i].y > 950))) {
-						prevx = 667;
 						barrier[1] = true;
-						if ((ts->finger_data[loop_i].x < prevx) &&
+						if ((ts->finger_data[loop_i].x < barrier2) &&
 						    (ts->finger_data[loop_i].y > 950)) {
 							if (exec_count) {
 								printk(KERN_INFO "[sweep2wake]: POWER OFF.\n");
@@ -2494,6 +2659,20 @@ static int atmel_ts_probe(struct i2c_client *client,
 #ifdef ATMEL_EN_SYSFS
 	atmel_touch_sysfs_init();
 #endif
+
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_START
+	s2w_startbutton = sweep2wake_buttonset(CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_START);
+#endif /* CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_START */
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_END
+	s2w_endbutton = sweep2wake_buttonset(CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_END);
+#endif /* CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_END */
+
+	barrier1 = s2w_startbutton - 100; //0;
+	barrier2 = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
+	barrier3 = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
+	barrier4 = s2w_endbutton + 100; //1000;
+#endif /* CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE */
 
 	dev_info(&client->dev, "[TP]Start touchscreen %s in interrupt mode\n",
 			ts->input_dev->name);
