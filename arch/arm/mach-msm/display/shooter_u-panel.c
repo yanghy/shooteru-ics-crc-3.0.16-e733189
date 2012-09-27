@@ -417,9 +417,9 @@ static struct mipi_dsi_platform_data mipi_pdata = {
 	.dsi_power_save   = mipi_panel_power,
 };
 
-#define BRI_SETTING_MIN		20
-#define BRI_SETTING_DEF		93
-#define BRI_SETTING_MAX		230
+#define BRI_SETTING_MIN		9
+#define BRI_SETTING_DEF		83
+#define BRI_SETTING_MAX		232
 
 #define PWM_MIN				8	/* 3.4% of max pwm */
 #define PWM_DEFAULT			91	/* 39.22% of max pwm */
