@@ -71,7 +71,7 @@ static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq)
 		freqs.new = new_freq;
 	freqs.cpu = policy->cpu;
 	cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
-	ret = acpuclk_set_rate(policy->cpu, new_freq, SETRATE_CPUFREQ);
+	ret = acpuclk_set_rate(policy->cpu, freqs.new, SETRATE_CPUFREQ);
 	if (!ret)
 		cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 
@@ -295,10 +295,9 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 	init_completion(&cpu_work->complete);
 #endif
 
-#ifdef CONFIG_MSM_CPU_FREQ_SET_MIN_MAX
-	policy->min = CONFIG_MSM_CPU_FREQ_MIN;
+/* set safe default min and max speeds */
 	policy->max = CONFIG_MSM_CPU_FREQ_MAX;
-#endif
+	policy->min = CONFIG_MSM_CPU_FREQ_MIN;
 	return 0;
 }
 
