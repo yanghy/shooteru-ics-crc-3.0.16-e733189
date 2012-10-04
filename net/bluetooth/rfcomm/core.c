@@ -2096,7 +2096,6 @@ static void rfcomm_security_cfm(struct hci_conn *conn, u8 status, u8 encrypt)
 		if (!test_and_clear_bit(RFCOMM_AUTH_PENDING, &d->flags))
 			continue;
 
-//		if (!status && hci_conn_check_secure(conn, d->sec_level))
 		if (!status)
 			set_bit(RFCOMM_AUTH_ACCEPT, &d->flags);
 		else
